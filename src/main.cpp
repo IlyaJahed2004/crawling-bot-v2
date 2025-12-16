@@ -7,8 +7,8 @@
 #include <HealthCheck.h>
 
 // Pin definitions
-const uint8_t SERVO_PIN_DOWN = 15;
-const uint8_t SERVO_PIN_UP = 16;
+const uint8_t SERVO_PIN_DOWN = 16; // P1 on board
+const uint8_t SERVO_PIN_UP = 15;   // P2 on board
 
 // Global objects
 Display display;
@@ -77,6 +77,9 @@ void setup()
 
     // Run health check
     healthCheck.run();
+
+    // Reset measurement for interval tracking
+    ahrs.resetMeasurement();
 }
 
 void loop()
@@ -84,33 +87,92 @@ void loop()
     // Update AHRS
     ahrs.update();
 
-    // Display status
+    // ===== MODE 1: Real-time continuous display =====
+    // Uncomment this section to show current instantaneous values
+    /*
     display.clear();
 
-    // Line 1: Robot number
+    // Line 1: Speed (cm/s)
     display.setCursor(0, 0);
-    display.print("Robot #");
-    display.print(network->getRobotNumber());
+    display.print("Spd: ");
+    display.print(ahrs.getSpeed() * 100, 1);
+    display.print(" cm/s");
 
-    // Line 2: Status
-    display.setCursor(0, 10);
-    display.print("Running...");
+    // Line 2: Acceleration (m/s^2)
+    display.setCursor(0, 12);
+    display.print("Acc: ");
+    display.print(ahrs.getAccelMagnitude(), 2);
+    display.print(" m/s2");
 
-    // Line 3: Yaw
-    display.setCursor(0, 20);
-    display.print("Yaw: ");
-    display.print((int)ahrs.getYaw());
-    display.print(" deg");
+    // Line 3: Displacement X (cm)
+    display.setCursor(0, 24);
+    display.print("X: ");
+    display.print(ahrs.getDisplacementX() * 100, 1);
+    display.print(" cm");
 
-    // Line 4: Temperature
-    display.setCursor(0, 30);
-    display.print("Temp: ");
-    display.print((int)ahrs.getTemperature());
-    display.print("C");
+    // Line 4: Displacement Y (cm)
+    display.setCursor(0, 36);
+    display.print("Y: ");
+    display.print(ahrs.getDisplacementY() * 100, 1);
+    display.print(" cm");
 
     display.refresh();
-
     delay(1000);
+    */
+
+    // ===== MODE 2: Interval measurement (every 2 seconds) =====
+    // This shows average movement parameters since last measurement
+    static unsigned long lastMeasurement = 0;
+    unsigned long currentTime = millis();
+
+    if (currentTime - lastMeasurement >= 2000)
+    { // Every 2 seconds
+        lastMeasurement = currentTime;
+
+        // Get measurement data
+        AHRS::MovementSnapshot measurement = ahrs.getMeasurement();
+
+        // Display the interval data
+        display.clear();
+
+        // Line 1: Distance moved in interval (cm)
+        display.setCursor(0, 0);
+        display.print("Dist: ");
+        display.print(measurement.deltaDistance, 1);
+        display.print(" cm");
+
+        // Line 2: Average speed in interval (cm/s)
+        display.setCursor(1, 0);
+        display.print("Spd: ");
+        display.print(measurement.avgSpeed, 1);
+        display.print(" cm/s");
+
+        // Line 3: Average acceleration in interval (m/s^2)
+        display.setCursor(2, 0);
+        display.print("Acc: ");
+        display.print(measurement.avgAcceleration, 2);
+        display.print(" m/s2");
+
+        // Line 4: Time interval
+        display.setCursor(3, 0);
+        display.print("Time: ");
+        display.print(measurement.deltaTime, 1);
+        display.print(" s");
+
+        display.refresh();
+
+        // Reset for next measurement
+        ahrs.resetMeasurement();
+
+        // Print to serial for debugging
+        Serial.print("Distance: ");
+        Serial.print(measurement.deltaDistance);
+        Serial.print(" cm, Speed: ");
+        Serial.print(measurement.avgSpeed);
+        Serial.print(" cm/s, Accel: ");
+        Serial.print(measurement.avgAcceleration);
+        Serial.println(" m/s2");
+    }
 
     // TODO: Implement main loop logic
     // - Read sensors
