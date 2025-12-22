@@ -10,6 +10,7 @@ Display::~Display()
     delete oled;
 }
 
+// Initializes the OLED display and prepares it for drawing.
 void Display::begin()
 {
     if (!oled->begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS))
@@ -25,6 +26,7 @@ void Display::begin()
     oled->display();
 }
 
+// Clears everything on the screen and resets cursor to (0,0).
 void Display::clear()
 {
     oled->clearDisplay();
@@ -33,6 +35,7 @@ void Display::clear()
     oled->setCursor(0, 0);
 }
 
+// Prints text on the OLED.
 void Display::print(const char *text, uint8_t x, uint8_t y)
 {
     if (x != 0 || y != 0)
@@ -51,11 +54,13 @@ void Display::print(const char *text, uint8_t x, uint8_t y)
     cursorY = oled->getCursorY();
 }
 
+
 void Display::print(const String &text, uint8_t x, uint8_t y)
 {
     print(text.c_str(), x, y);
 }
 
+// Same as above but for integers.
 void Display::print(int value, uint8_t x, uint8_t y)
 {
     if (x != 0 || y != 0)
@@ -74,6 +79,7 @@ void Display::print(int value, uint8_t x, uint8_t y)
     cursorY = oled->getCursorY();
 }
 
+// Prints a line and moves cursor down by 8px.
 void Display::println(const char *text, uint8_t x, uint8_t y)
 {
     if (x != 0 || y != 0)
@@ -89,6 +95,7 @@ void Display::println(const char *text, uint8_t x, uint8_t y)
     oled->display();
 }
 
+// Moves the internal writing cursor to a new position.
 void Display::setCursor(uint8_t x, uint8_t y)
 {
     cursorX = x;
@@ -96,11 +103,13 @@ void Display::setCursor(uint8_t x, uint8_t y)
     oled->setCursor(x, y);
 }
 
+// Changes font size.
 void Display::setTextSize(uint8_t size)
 {
     oled->setTextSize(size);
 }
 
+// Commit what you drew to the OLED screen (SSD1306 requires calling this to show updates):Always after finishing your drawing for that step.
 void Display::display()
 {
     oled->display();
@@ -111,6 +120,7 @@ void Display::refresh()
     oled->display();
 }
 
+// Clears the screen and draws a 0–100% progress bar.
 void Display::drawProgressBar(uint8_t percentage)
 {
     clear();

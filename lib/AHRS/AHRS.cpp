@@ -33,7 +33,7 @@ bool AHRS::begin()
 
     return true;
 }
-
+// Updates all sensor values (acceleration, gyro, magnetometer, yaw, velocity, displacement):
 void AHRS::update()
 {
     if (!initialized)
@@ -70,6 +70,7 @@ void AHRS::update()
     }
 }
 
+// Returns true if robot acceleration is > threshold.
 bool AHRS::isMoving()
 {
     if (!initialized)
@@ -86,6 +87,8 @@ bool AHRS::isMoving()
     return netAccel > MOTION_THRESHOLD;
 }
 
+// How far the robot moved since last reset (in meters):getDisplacementX,getDisplacementY,getDisplacementZ
+
 float AHRS::getDisplacementX()
 {
     return displacementX;
@@ -101,11 +104,14 @@ float AHRS::getDisplacementZ()
     return displacementZ;
 }
 
+// Resets displacement and velocity to zero: this is used at the start of every RL episode.
 void AHRS::resetDisplacement()
 {
     velocityX = velocityY = velocityZ = 0;
     displacementX = displacementY = displacementZ = 0;
 }
+
+
 
 float AHRS::getVelocityX()
 {
@@ -122,11 +128,16 @@ float AHRS::getVelocityZ()
     return velocityZ;
 }
 
+
+
+// Returns the current speed of the robot in m/s.
 float AHRS::getSpeed()
 {
     return sqrt(velocityX * velocityX + velocityY * velocityY + velocityZ * velocityZ);
 }
 
+
+// Total acceleration vector magnitude.
 float AHRS::getAccelMagnitude()
 {
     float ax = getAccelX();
@@ -135,6 +146,8 @@ float AHRS::getAccelMagnitude()
     return sqrt(ax * ax + ay * ay + az * az);
 }
 
+
+// Three-axis orientation in degrees.
 float AHRS::getRoll()
 {
     return initialized ? mpu->getRoll() : 0;
@@ -149,6 +162,8 @@ float AHRS::getYaw()
 {
     return initialized ? mpu->getYaw() : 0;
 }
+
+
 
 float AHRS::getAccelX()
 {
@@ -246,6 +261,8 @@ bool AHRS::isCalibrated()
     return calibrated;
 }
 
+
+// this gives these as a struct: deltaDistance(cm) ,avgSpeed(cm/s),avgAcceleration(m/s²),deltaTime(s)
 AHRS::MovementSnapshot AHRS::getMeasurement()
 {
     MovementSnapshot snapshot;
@@ -274,6 +291,7 @@ AHRS::MovementSnapshot AHRS::getMeasurement()
     return snapshot;
 }
 
+// Resets the snapshot window.
 void AHRS::resetMeasurement()
 {
     lastSnapshotX = displacementX;
