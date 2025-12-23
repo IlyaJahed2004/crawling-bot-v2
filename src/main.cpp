@@ -105,103 +105,94 @@ void setup()
     // This clears displacement, speed averages.Useful before training starts.
     ahrs.resetMeasurement();
 }
+
+
+
 void loop()
 {
-    // Update AHRS:This reads sensors and calculates:acceleration,velocity,displacement,orientation,speed
+    static unsigned long lastStep = 0;
+    static int steps = 0;
+    static float avgReward = 0.0f;
+
+    const int TRAINING_STEPS = 200;
+    const unsigned long STEP_INTERVAL = 1200;
+
+    if (millis() - lastStep < STEP_INTERVAL) return;
+    lastStep = millis();
+
+    // 1. Sensor update
     ahrs.update();
 
+    // 2. Build discrete state from speed
+    float speed = ahrs.getSpeed() * 100.0f; // cm/s
+    uint8_t state;
 
+    if (speed < 2.0f) state = 0;
+    else if (speed < 8.0f) state = 1;
+    else state = 2;
 
-    // ===== MODE 1: Real-time continuous display =====
-    // Uncomment this section to show current instantaneous values
-    /*
+    // 3. Choose action
+    uint8_t action = training.selectAction(state);
+
+    // 4. Execute action (servo gait)
+    if (action == 0) {
+        servoControl.moveDown(70);
+        servoControl.moveUp(110);
+    } else if (action == 1) {
+        servoControl.moveDown(90);
+        servoControl.moveUp(90);
+    } else {
+        servoControl.moveDown(120);
+        servoControl.moveUp(60);
+    }
+
+    delay(600);
+
+    // 5. Observe result
+    ahrs.update();
+    float newSpeed = ahrs.getSpeed() * 100.0f;
+
+    uint8_t nextState;
+    if (newSpeed < 2.0f) nextState = 0;
+    else if (newSpeed < 8.0f) nextState = 1;
+    else nextState = 2;
+
+    float reward = newSpeed;
+
+    // 6. Learn
+    training.updateQ(state, action, reward, nextState);
+
+    // 7. Auto-freeze training
+    if (steps >= TRAINING_STEPS && training.isTraining()) {
+        training.stopTraining();
+        training.saveModel();
+    }
+
+    avgReward = (avgReward * steps + reward) / (steps + 1);
+    steps++;
+
+    // 8. OLED feedback (CRITICAL)
     display.clear();
-    // Line 1: Speed (cm/s)
+
     display.setCursor(0, 0);
-    display.print("Spd: ");
-    display.print(ahrs.getSpeed() * 100, 1);
-    display.print(" cm/s");
-    // Line 2: Acceleration (m/s^2)
+    display.print(training.isTraining() ? "MODE: TRAIN" : "MODE: EXEC");
+
     display.setCursor(0, 12);
-    display.print("Acc: ");
-    display.print(ahrs.getAccelMagnitude(), 2);
-    display.print(" m/s2");
-    // Line 3: Displacement X (cm)
+    display.print("AvgR:");
+    display.print(avgReward, 1);
+
     display.setCursor(0, 24);
-    display.print("X: ");
-    display.print(ahrs.getDisplacementX() * 100, 1);
-    display.print(" cm");
-    // Line 4: Displacement Y (cm)
+    display.print("Act:");
+    display.print(action);
+
+    display.setCursor(64, 24);
+    display.print("Spd:");
+    display.print(newSpeed, 1);
+
     display.setCursor(0, 36);
-    display.print("Y: ");
-    display.print(ahrs.getDisplacementY() * 100, 1);
-    display.print(" cm");
+    display.print("eps:");
+    display.print(training.getEpsilon(), 2);
 
     display.refresh();
-    delay(1000);
-    */
-
-
-
-    // ===== MODE 2: Interval measurement (every 2 seconds) =====
-    // This shows average movement parameters since last measurement
-    static unsigned long lastMeasurement = 0;
-    unsigned long currentTime = millis();
-
-    // if (currentTime - lastMeasurement >= 2000)
-    // {
-    //      Every 2 seconds
-    //     lastMeasurement = currentTime;
-
-    //     // Get measurement data
-    //     AHRS::MovementSnapshot measurement = ahrs.getMeasurement();
-
-    //     // Display the interval data
-    //     display.clear();
-
-    //     // Line 1: Distance moved in interval (cm)
-    //     display.setCursor(0, 0);
-    //     display.print("Dist: ");
-    //     display.print(measurement.deltaDistance, 1);
-    //     display.print(" cm");
-
-    //     // Line 2: Average speed in interval (cm/s)
-    //     display.setCursor(1, 0);
-    //     display.print("Spd: ");
-    //     display.print(measurement.avgSpeed, 1);
-    //     display.print(" cm/s");
-
-    //     // Line 3: Average acceleration in interval (m/s^2)
-    //     display.setCursor(2, 0);
-    //     display.print("Acc: ");
-    //     display.print(measurement.avgAcceleration, 2);
-    //     display.print(" m/s2");
-
-    //     // Line 4: Time interval
-    //     display.setCursor(3, 0);
-    //     display.print("Time: ");
-    //     display.print(measurement.deltaTime, 1);
-    //     display.print(" s");
-
-    //     display.refresh();
-
-    //     // Reset for next measurement
-    //     ahrs.resetMeasurement();
-
-    //     // Print to serial for debugging
-    //     Serial.print("Distance: ");
-    //     Serial.print(measurement.deltaDistance);
-    //     Serial.print(" cm, Speed: ");
-    //     Serial.print(measurement.avgSpeed);
-    //     Serial.print(" cm/s, Accel: ");
-    //     Serial.print(measurement.avgAcceleration);
-    //     Serial.println(" m/s2");
-    // }
-
-    // TODO: Implement main loop logic
-    // - Read sensors
-    // - Process data
-    // - Execute training if active
-    // - Execute learned behavior
-    // - Control servos
 }
+

@@ -7,17 +7,21 @@ class Training {
 public:
     Training();
     void begin();
-    
-    // Training methods - to be implemented
+
+    // RL core
+    uint8_t selectAction(uint8_t state);
+    void updateQ(uint8_t state, uint8_t action, float reward, uint8_t nextState);
+
+    // Training control
     void startTraining();
     void stopTraining();
     bool isTraining();
-    
-    // Learning methods - to be implemented
-    void executeLearnedBehavior();
+
+    // Execution
     bool hasLearnedBehavior();
-    
-    // Data management - to be implemented
+    float getEpsilon();
+
+    // Persistence (safe, optional)
     void saveModel();
     void loadModel();
     void resetModel();
@@ -27,4 +31,4 @@ private:
     bool modelLoaded;
 };
 
-#endif // TRAINING_H
+#endif
